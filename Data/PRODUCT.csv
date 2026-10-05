@@ -1,0 +1,6 @@
+﻿"SKU_ID";"Nom";"Famille";"Plant_ID";"Poids_unit";"DLC_jours";"Stock_secu_methode"
+"SKU-01";"Biscuits Nature 250g";"Biscuits";"USN-01";"0.25";"180";"SS_NORMAL"
+"SKU-02";"Biscuits Chocolat 250g";"Biscuits";"USN-01";"0.25";"150";"SS_NORMAL"
+"SKU-03";"Crackers Sale 200g";"Crackers";"USN-02";"0.2";"120";"SS_NORMAL"
+"SKU-04";"Crackers Cereales 200g";"Crackers";"USN-02";"0.2";"120";"SS_NORMAL"
+"SKU-05";"Gaufrettes Vanille 150g";"Gaufrettes";"USN-03";"0.15";"90";"SS_SEASONAL"

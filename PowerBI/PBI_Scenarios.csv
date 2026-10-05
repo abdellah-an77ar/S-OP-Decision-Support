@@ -1,0 +1,6 @@
+Scenario_ID;Nom;Hypotheses;Cout_total;Taux_service_pct;Stock_final_tot;Risque_peremption;Util_max_pct;Cycle_ID;Statut
+SC-01;Baseline (Statu quo);Aucun levier. Production a capacite nominale.;91464898;55.5;8248;4124;180.3;CYC-2023-06;Brouillon
+SC-02;Heures supplementaires +20%;Activation HS sur usines en deficit. Capacite +20%.;82285898;66.6;6193;616;150.2;CYC-2023-06;Brouillon
+SC-03;Sous-traitance partielle (50%);Externalisation 50% du deficit. Delai +5j.;79368272;77.7;4124;1237;180.3;CYC-2023-06;Brouillon
+SC-04;HS 15% + Sous-traitance 40% (RECOMMANDE);Mixte HS+ST. Equilibre cout/service optimal.;74903347;81.6;3407;1452;122.5;CYC-2023-06;Brouillon
+SC-05;Lissage demande -10% (report promotions);Revision a la baisse de 10% de la demande.;74485757;55.5;6395;370;162.2;CYC-2023-06;Brouillon

@@ -1,0 +1,4 @@
+Plant_ID;Nom;Capacite_ref;Marge_cap;Cap_HS_max_pct;Cap_ST_max
+USN-01;Usine Nord;5000;0.1;0.2;1000
+USN-02;Usine Sud;4000;0.1;0.2;800
+USN-03;Usine Est;2500;0.1;0.15;500

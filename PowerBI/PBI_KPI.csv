@@ -1,0 +1,9 @@
+KPI_ID;Indicateur;Perimetre;Periode;Valeur;Unite;Seuil_vert;Seuil_rouge;Statut_seuil;Cycle_ID
+KPI-01;Taux de service global;Global;Horizon S.O.P.;100;%;95;90;VERT;CYC-2023-06
+KPI-02;Utilisation max capacite;Capacity;Peak horizon;344.3;%;85;95;ROUGE;CYC-2023-06
+KPI-03;WAPE moyen forecast;Forecast;Methode retenue;17.6;%;20;30;VERT;CYC-2023-06
+KPI-04;Nombre de ruptures de stock;Inventory;Horizon;0;cas;0;2;VERT;CYC-2023-06
+KPI-05;Nombre de surstocks;Inventory;Horizon;0;cas;0;3;VERT;CYC-2023-06
+KPI-06;Usines-mois en surcharge;Capacity;Horizon;18;cas;0;2;ROUGE;CYC-2023-06
+KPI-07;Deficit capacite total (unites);Gap;Horizon;82477;unites;0;1000;ROUGE;CYC-2023-06
+KPI-08;Demande totale planifiee;Demand;Horizon S.O.P.;185227;unites;0;0;VERT;CYC-2023-06

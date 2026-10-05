@@ -1,0 +1,300 @@
+============================================================
+GUIDE UTILISATEUR - AtlasFood S&OP Decision Support System
+Version 1.0 - Cycle CYC-2023-06
+============================================================
+
+TABLE DES MATIERES
+1. Presentation de l'outil
+2. Prerequis et configuration initiale
+3. Workflow S.O.P. mensuel - Etape par etape
+4. Description des feuilles
+5. Parametrage de l'outil
+6. Export vers Power BI
+7. Questions frequentes et depannage
+
+============================================================
+1. PRESENTATION DE L'OUTIL
+============================================================
+
+AtlasFood S&OP DSS est un outil d'aide a la decision pour le processus
+Sales & Operations Planning (S.O.P.) mensuel de l'entreprise AtlasFood.
+
+Il permet de :
+- Importer l'historique des ventes, productions et livraisons depuis des CSV
+- Calculer des previsions de la demande (Forecast) par SKU
+- Elaborer les plans de demande, capacite, stock et approvisionnement
+- Identifier les ecarts capacitaires (Gap Analysis)
+- Generer et comparer plusieurs scenarios de levier S.O.P.
+- Calculer les KPI et generer les alertes automatiques
+- Valider le plan retenu et exporter les donnees vers Power BI
+
+Technologies utilisees : Microsoft Excel, VBA, Microsoft Power BI.
+
+============================================================
+2. PREREQUIS ET CONFIGURATION INITIALE
+============================================================
+
+A. ACTIVER LES MACROS
+   - A l'ouverture du fichier, Excel demande d'activer les macros.
+   - Cliquer sur "Activer le contenu" ou "Activer les macros".
+   - Si aucune invite n'apparait : Fichier > Options > Centre de gestion de la
+     confidentialite > Parametres > Macros > Activer toutes les macros.
+
+B. ACCES AU CODE VBA (OPTIONNEL - pour les administrateurs)
+   - Pour que le script de construction puisse injecter les modules VBA,
+     cocher : Fichier > Options > Centre de gestion de la confidentialite >
+     Parametres du Centre > Acces aux parametres des macros >
+     "Approuver l'acces au modele objet du projet VBA"
+
+C. STRUCTURE DES FICHIERS
+   /Application/
+       AtlasFood_SOP.xlsm    <- Fichier principal (cet outil)
+   /Data/
+       SALES_HISTORY.csv     <- Historique ventes (795 lignes)
+       PRODUCTION_HISTORY.csv
+       DELIVERY_HISTORY.csv
+       PRODUCT.csv           <- Referentiel produits (5 SKU)
+       PLANT.csv             <- Referentiel usines (3 usines)
+       CALENDAR.csv          <- Calendrier 2023 (8 mois)
+       COST.csv              <- Couts unitaires
+   /PowerBI/
+       PBI_*.csv             <- Fichiers export (generes par l'outil)
+       Guide_PowerBI.txt     <- Instructions connexion Power BI
+   /Documentation/
+       Guide_Utilisateur.txt <- Ce fichier
+       Historique_Construction.txt
+       README.txt
+
+============================================================
+3. WORKFLOW S.O.P. MENSUEL - ETAPE PAR ETAPE
+============================================================
+
+L'ecran ACCUEIL est votre point d'entree.
+Les boutons sont organises de gauche a droite, etape par etape.
+
+-----------------------------------------------------------
+ETAPE J1 - IMPORTATION DES DONNEES
+-----------------------------------------------------------
+Bouton : [Importer les donnees]
+
+1. Cliquer sur le bouton "Importer les donnees"
+2. Une boite de dialogue vous demande de selectionner le
+   dossier /Data/ contenant les 7 fichiers CSV.
+3. L'outil importe automatiquement :
+   - SALES_HISTORY.csv   -> feuille SALES_HISTORY
+   - PRODUCTION_HISTORY.csv -> feuille PRODUCTION_HISTORY
+   - DELIVERY_HISTORY.csv -> feuille DELIVERY_HISTORY
+   (Les fichiers de reference PRODUCT, PLANT, CALENDAR, COST
+    sont deja pre-charges dans le classeur.)
+4. Un message confirme le nombre de lignes importees.
+5. Verifier que la barre de statut (bas ACCUEIL) indique "Importation OK".
+
+NOTE ENCODAGE : Les CSV doivent etre en UTF-8. Le module d'import
+utilise ADODB.Stream avec Charset="utf-8" pour garantir les accents.
+
+-----------------------------------------------------------
+ETAPE J2 - PREVISION DE LA DEMANDE
+-----------------------------------------------------------
+Boutons : [Lancer le Forecast] puis [Demand Plan]
+
+FORECAST :
+1. Cliquer sur "Lancer le Forecast"
+2. L'outil calcule automatiquement le meilleur modele de prevision
+   par SKU parmi : Moyenne mobile, Tendance lineaire, Saisonnalite simple.
+3. Classification de chaque SKU : STABLE / MODEREMENT_VARIABLE / VOLATILE
+4. Resultat : feuille FORECAST avec previsions sur 6 mois, WAPE et biais.
+5. La prevision "RETENUE" est automatiquement selectionnee (meilleur WAPE).
+
+DEMAND PLAN :
+1. Cliquer sur "Demand Plan"
+2. Agregation des previsions retenues par SKU et par mois.
+3. Resultat : feuille DEMAND_PLAN.
+4. Vous pouvez modifier manuellement la colonne D (Ajustement) pour
+   incorporer des evenements commerciaux (promotions, etc.).
+   La colonne E (Qte_finale) recalcule automatiquement.
+
+-----------------------------------------------------------
+ETAPE J3 - PLANS DE SUPPLY
+-----------------------------------------------------------
+Bouton : [Capacity - Inventory - Gap]
+
+Ce bouton execute en sequence :
+A) CAPACITY PLAN
+   - Calcule la charge par usine et par mois (en % de la capacite).
+   - Signale les tensions (ALERTE > 85%) et surcharges (> 100%).
+   - Feuille : CAPACITY_PLAN
+
+B) INVENTORY PLAN
+   - Projette les stocks sur l'horizon de 6 mois.
+   - Calcule le stock de securite (formule statistique avec Z=1.65 a 95%).
+   - Signale les ruptures, sous-seuils, surstocks.
+   - Feuille : INVENTORY_PLAN
+
+C) GAP ANALYSIS
+   - Identifie les ecarts entre besoins et capacites disponibles (HS+ST).
+   - Feuille : GAP_ANALYSIS
+
+-----------------------------------------------------------
+ETAPE J4 - REUNION PRE-S.O.P.
+-----------------------------------------------------------
+Boutons : [Generer les Scenarios] + [Calculer les KPI]
+
+SCENARIOS :
+1. Cliquer sur "Generer les Scenarios"
+2. L'outil genere et compare automatiquement 5 scenarios :
+   - SC-01 : Baseline (statu quo)
+   - SC-02 : Heures supplementaires +20%
+   - SC-03 : Sous-traitance partielle 50%
+   - SC-04 : HS 15% + Sous-traitance 40% (RECOMMANDE)
+   - SC-05 : Lissage demande -10%
+3. Comparaison : Cout total, Taux de service, Stock final,
+   Risque de peremption, Utilisation max capacite.
+4. Feuille : SCENARIOS
+
+KPI :
+1. Cliquer sur "Calculer les KPI"
+2. Calcul de 8 indicateurs cles avec code couleur VERT/ORANGE/ROUGE.
+3. Generation automatique des alertes dans ALERTES.
+4. Feuille : KPI_RESULTS
+
+-----------------------------------------------------------
+ETAPE J5 - REUNION S.O.P. DECISION
+-----------------------------------------------------------
+Bouton : [Valider le Plan Final]
+
+1. Cliquer sur "Valider le Plan Final"
+2. L'outil affiche la liste des scenarios avec leurs metriques.
+3. Entrer l'ID du scenario retenu (ex: SC-04).
+4. Confirmer la validation.
+5. Un plan de production detaille par SKU/usine/mois est genere.
+6. Feuille : PLAN_FINAL avec horodatage et valideur.
+
+-----------------------------------------------------------
+CYCLE COMPLET (RACCOURCI)
+-----------------------------------------------------------
+Bouton : [CYCLE COMPLET J2-J4]
+
+Execute automatiquement toutes les etapes J2 a J4 en sequence.
+Attention : n'inclut pas l'importation (J1) ni la validation (J5).
+
+-----------------------------------------------------------
+EXPERT : MONTE CARLO
+-----------------------------------------------------------
+Bouton : [Monte Carlo Expert]
+
+Simulation de 1000 iterations par SKU pour evaluer la robustesse
+du plan face a l'incertitude de la demande.
+Resultat dans feuille MC_RESULTS :
+- P50, P90 de la demande simulee
+- Probabilite de rupture
+- Cout moyen et cout P90
+
+-----------------------------------------------------------
+EXPORT POWER BI
+-----------------------------------------------------------
+Bouton : [Exporter vers Power BI]
+
+1. Selectionner le dossier de destination (ex: /PowerBI/).
+2. L'outil exporte 11 fichiers CSV (UTF-8 sans BOM) :
+   PBI_Forecast.csv, PBI_DemandPlan.csv, PBI_CapacityPlan.csv,
+   PBI_InventoryPlan.csv, PBI_GapAnalysis.csv, PBI_Scenarios.csv,
+   PBI_PlanFinal.csv, PBI_KPI.csv, PBI_Alertes.csv,
+   PBI_Product.csv, PBI_Plant.csv
+3. Explorer le dossier s'ouvre automatiquement.
+4. Voir Guide_PowerBI.txt pour la connexion dans Power BI.
+
+============================================================
+4. DESCRIPTION DES FEUILLES
+============================================================
+
+ACCUEIL          : Interface principale et workflow
+PARAMETRES       : Tous les parametres ajustables de l'outil
+PLANT            : Referentiel des 3 usines (capacites)
+PRODUCT          : Referentiel des 5 SKU (familles, DLC, usines)
+CALENDAR         : Calendrier 2023 (jours ouvres, feries, Ramadan)
+COST             : Couts unitaires par usine (HS, ST, stockage...)
+SALES_HISTORY    : Historique ventes importe depuis CSV
+PRODUCTION_HIST. : Historique production importe depuis CSV
+DELIVERY_HISTORY : Historique livraisons importe depuis CSV
+FORECAST         : Previsions par SKU (calcule)
+DEMAND_PLAN      : Plan de demande consolide (calcule, ajustable)
+CAPACITY_PLAN    : Plan de capacite par usine/mois (calcule)
+INVENTORY_PLAN   : Plan de stock par SKU/mois (calcule)
+GAP_ANALYSIS     : Analyse des ecarts capacite/besoin (calcule)
+SCENARIOS        : 5 scenarios S.O.P. compares (calcule)
+PLAN_FINAL       : Plan valide avec scenario retenu (valide)
+KPI_RESULTS      : 8 indicateurs cles (calcule)
+ALERTES          : Alertes auto (ruptures, surcharges, surstocks)
+EXPORT_POWERBI   : Journal des exports (masquee par defaut)
+LOG              : Journal complet des actions (masquee par defaut)
+MC_RESULTS       : Resultats Monte Carlo (creee a la demande)
+
+============================================================
+5. PARAMETRAGE DE L'OUTIL
+============================================================
+
+Tous les parametres sont modifiables dans la feuille PARAMETRES.
+
+Principaux parametres :
+- HORIZON_MOIS     : Horizon de planification (defaut : 6 mois)
+- NIVEAU_SERVICE   : Cible taux de service (defaut : 0.95 = 95%)
+- DELAI_LIVRAISON  : Delai reappro en jours (defaut : 5 jours)
+- SEUIL_ALERTE_GAP : % utilisation capacite declenchant alerte (0.85)
+- SEUIL_SURSTOCK   : Ratio stock/demande surstock (defaut : 2x)
+- STOCK_INIT_SKU0X : Stocks initiaux par SKU (en unites)
+- MC_ITERATIONS    : Nombre d'iterations Monte Carlo (defaut : 1000)
+- MC_SIGMA_PCT     : Ecart-type relatif demande (defaut : 15%)
+- CYCLE_ID         : Identifiant du cycle S.O.P. en cours
+
+IMPORTANT : modifier CYCLE_ID avant chaque nouveau cycle S.O.P.
+(ex: CYC-2023-07 pour le cycle juillet 2023)
+
+============================================================
+6. EXPORT VERS POWER BI
+============================================================
+
+Voir le fichier Documentation/Guide_PowerBI.txt pour les
+instructions detaillees de connexion et de rafraichissement
+dans Microsoft Power BI Desktop.
+
+Procedure rapide :
+1. Dans Power BI : Obtenir des donnees > Texte/CSV
+2. Pointer sur le dossier PowerBI/ contenant les PBI_*.csv
+3. Choisir le separateur ";" et l'encodage UTF-8
+4. Charger toutes les tables
+5. Creer les relations : SKU_ID, Plant_ID, Cycle_ID, Periode/Mois
+6. Actualiser le rapport apres chaque export depuis l'outil Excel
+
+============================================================
+7. QUESTIONS FREQUENTES ET DEPANNAGE
+============================================================
+
+Q : Les macros ne fonctionnent pas a l'ouverture.
+R : Cliquer sur "Activer le contenu" dans la barre jaune en haut.
+    Si absente : Fichier > Options > Centre de gestion de la
+    confidentialite > Activer toutes les macros.
+
+Q : L'import CSV affiche des caracteres incorrects.
+R : Verifier que les CSV sont en encodage UTF-8.
+    Ne pas ouvrir les CSV avec Excel avant import (Excel change l'encodage).
+    Utiliser Notepad++ pour verifier l'encodage.
+
+Q : "Erreur 1004 : acces au modele objet VBA refuse"
+R : Fichier > Options > Centre de gestion > Parametre du Centre >
+    Acces aux parametres des macros > Cocher "Approuver l'acces".
+
+Q : Le bouton Exporter vers Power BI ne cree pas les CSV.
+R : Verifier que le dossier de destination existe et est accessible.
+    S'assurer que les calculs ont ete executes au prealable.
+
+Q : Erreur dans le Forecast : "Lancez d'abord l'import".
+R : Executer l'etape J1 (Importer les donnees) avant le Forecast.
+
+Q : Comment modifier les hypotheses de cout ?
+R : Modifier directement la feuille COST (colonnes Montant_unit).
+    Les scenarios se recalculeront avec les nouveaux couts.
+
+============================================================
+Contacts : equipe.sop@atlasfood.ma
+Version : 1.0 | Date : Juin 2023 | Cycle : CYC-2023-06
+============================================================

@@ -1,0 +1,107 @@
+============================================================
+HISTORIQUE DE CONSTRUCTION - AtlasFood S&OP DSS
+============================================================
+
+DATE           ETAPE                              STATUT
+------------------------------------------------------------
+2026-09-29     Analyse du cahier des charges       OK
+2026-09-29     Definition de l'architecture        OK
+2026-09-29     Creation de la structure de dossiers OK
+2026-09-29     Generation des donnees synthetiques  OK
+2026-09-29     Ecriture des modules VBA (7 modules) OK
+2026-09-29     Construction du fichier .xlsm        OK
+2026-09-29     Test d'importation CSV               -
+2026-09-29     Test du cycle S.O.P. complet         -
+2026-09-29     Export vers Power BI                 -
+2026-09-29     Documentation                        OK
+
+============================================================
+ARCHITECTURE FONCTIONNELLE
+============================================================
+
+MODULES VBA:
+  mod01_CONFIG.bas    - Constantes, parametres, logs, utilitaires
+  mod02_IMPORT.bas    - Importation CSV via ADODB.Stream (UTF-8)
+  mod03_FORECAST.bas  - Previsions (MM, Tendance, Saisonnalite, backtest)
+  mod04_PLANS.bas     - Demand Plan, Capacity Plan, Inventory Plan, Gap
+  mod05_SCENARIOS.bas - 5 scenarios S.O.P. compares
+  mod06_KPI.bas       - KPI, alertes, validation plan, Monte Carlo
+  mod07_EXPORT.bas    - Export CSV Power BI, cycle complet, reset
+
+FEUILLES EXCEL (20):
+  ACCUEIL, PARAMETRES, PLANT, PRODUCT, CALENDAR, COST
+  SALES_HISTORY, PRODUCTION_HISTORY, DELIVERY_HISTORY
+  FORECAST, DEMAND_PLAN, CAPACITY_PLAN, INVENTORY_PLAN
+  GAP_ANALYSIS, SCENARIOS, PLAN_FINAL
+  KPI_RESULTS, ALERTES, EXPORT_POWERBI, LOG
+
+============================================================
+SOURCE DES DONNEES
+============================================================
+
+DONNEES SYNTHETIQUES inspirees de :
+  SupplyGraph: A Benchmark Dataset for Supply Chain Planning
+  Wasi et al., 2024 - arXiv:2401.15299
+
+Caracteristiques du jeu de test :
+  - Periode : Janvier - Aout 2023 (8 mois)
+  - 5 SKU (3 familles : Biscuits, Crackers, Gaufrettes)
+  - 3 usines (Usine Nord USN-01, Usine Sud USN-02, Usine Est USN-03)
+  - SALES_HISTORY    : ~795 lignes (tendance + saisonnalite Ramadan)
+  - PRODUCTION_HISTORY : ~795 lignes
+  - DELIVERY_HISTORY : ~795 lignes
+  - Seed aleatoire : 42 (reproductible)
+
+Les donnees sont SYNTHETIQUES et servent uniquement a des fins
+de demonstration et de test de l'outil.
+
+============================================================
+DECISIONS TECHNIQUES
+============================================================
+
+1. ENCODAGE : Import CSV via ADODB.Stream Charset="utf-8"
+   Export CSV : ADODB.Stream UTF-8 sans BOM (skip 3 bytes)
+   Garantit la preservation des accents (e, e, a, c, etc.)
+
+2. FORECAST : 3 methodes comparees par back-test 8 semaines
+   Seuils CV : Stable CV<0.20, Volatile CV>0.50
+   Retenu = methode avec meilleur WAPE
+
+3. STOCK DE SECURITE : SS = Z * sigma * sqrt(LT/30) * mu
+   Z=1.65 pour 95% de niveau de service (configurable)
+
+4. SCENARIOS : 5 scenarios avec formules de cout detaillees
+   Comparaison : cout total, taux service, utilisation, peremption
+
+5. MONTE CARLO : Distribution normale Box-Muller
+   1000 iterations par SKU (configurable)
+
+6. POWER BI : Export CSV separe (pas de .pbix programmatique)
+   11 fichiers CSV exportes vers dossier choisi par l'utilisateur
+
+============================================================
+CONTRAINTES ET LIMITATIONS CONNUES
+============================================================
+
+- Les boutons ActiveX sur ACCUEIL necessitent les macros activees
+- L'injection VBA via COM necessite "Approuver l'acces au VBProject"
+  (Centre de gestion de la confidentialite Excel)
+- La simulation Monte Carlo peut prendre 30-60s pour 1000 iterations
+  sur des machines lentes (reducer MC_ITERATIONS a 200 pour la demo)
+- Le fichier .pbix ne peut pas etre cree automatiquement via script.
+  Se reporter a Guide_PowerBI.txt pour la connexion manuelle.
+- Solver Excel non integre (optimisation LP hors scope MVP)
+
+============================================================
+CONVENTIONS DE CODE VBA
+============================================================
+
+- Noms de constantes : SH_* pour les noms de feuilles
+- Noms de procedures : LancerXxx() pour les etapes S.O.P.
+- Gestion erreurs : On Error GoTo ErrHandler systematique
+- Logs : LogMsg "MODULE", "NIVEAU", "message"
+- Statut barre : SetStatus "message"
+- Progress : ShowProgress "message", pct / ClearProgress
+- Tables Excel : prefixe tbl_ (ex: tbl_PARAM, tbl_PRODUCT)
+
+============================================================

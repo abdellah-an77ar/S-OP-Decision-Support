@@ -1,0 +1,233 @@
+============================================================
+GUIDE POWER BI - AtlasFood S&OP Decision Support System
+Connexion, modele de donnees et visualisations recommandees
+============================================================
+
+1. PREREQUIS
+2. CONNEXION AUX DONNEES CSV
+3. MODELE DE DONNEES (RELATIONS)
+4. MESURES DAX RECOMMANDEES
+5. VISUALISATIONS RECOMMANDEES
+6. RAFRAICHISSEMENT DES DONNEES
+
+============================================================
+1. PREREQUIS
+============================================================
+
+- Power BI Desktop installe (version Mars 2023 ou plus recente)
+- Fichiers CSV exportes depuis l'outil Excel (bouton "Exporter vers Power BI")
+- Les fichiers PBI_*.csv doivent etre dans le dossier /PowerBI/
+
+Fichiers attendus :
+  PBI_Forecast.csv        (separateur: ";" | encodage: UTF-8)
+  PBI_DemandPlan.csv
+  PBI_CapacityPlan.csv
+  PBI_InventoryPlan.csv
+  PBI_GapAnalysis.csv
+  PBI_Scenarios.csv
+  PBI_PlanFinal.csv
+  PBI_KPI.csv
+  PBI_Alertes.csv
+  PBI_Product.csv
+  PBI_Plant.csv
+
+============================================================
+2. CONNEXION AUX DONNEES CSV
+============================================================
+
+METHODE A - Import individuel (recommandee pour le prototype):
+--------------------------------------------------------------
+Pour chaque fichier CSV :
+
+1. Dans Power BI Desktop : Accueil > Obtenir des donnees > Texte/CSV
+2. Naviguer vers le dossier /PowerBI/ et selectionner le fichier
+3. Dans la fenetre de preview :
+   - Origine du fichier : 65001 (Unicode UTF-8)
+   - Separateur : Point-virgule (;)
+   - Detection du type de donnees : Premiere ligne
+4. Cliquer "Charger" (ou "Transformer les donnees" pour verifier)
+5. Repeter pour chaque fichier
+
+METHODE B - Import depuis dossier (si tous les CSV sont au meme endroit):
+-------------------------------------------------------------------------
+1. Accueil > Obtenir des donnees > Dossier
+2. Selectionner le dossier /PowerBI/
+3. Dans Power Query, filtrer uniquement les fichiers PBI_*.csv
+4. Combiner les fichiers individuellement (ne pas combiner en une seule table)
+
+REGLAGE ENCODAGE DANS POWER QUERY (si accents incorrects):
+-----------------------------------------------------------
+1. Accueil > Transformer les donnees
+2. Dans Power Query, cliquer sur la source de donnees
+3. Dans la barre de formule, localiser :
+   File.Contents("...")
+4. Ajouter : Csv.Document(... [Delimiter=";", Encoding=65001])
+   65001 = UTF-8
+
+============================================================
+3. MODELE DE DONNEES (RELATIONS)
+============================================================
+
+Tables de faits:
+  - PBI_Forecast      (faits de prevision)
+  - PBI_DemandPlan    (faits plan demande)
+  - PBI_CapacityPlan  (faits capacite)
+  - PBI_InventoryPlan (faits stocks)
+  - PBI_GapAnalysis   (faits ecarts)
+  - PBI_Scenarios     (faits scenarios)
+  - PBI_PlanFinal     (faits plan valide)
+  - PBI_KPI           (faits indicateurs)
+  - PBI_Alertes       (faits alertes)
+
+Tables de dimensions:
+  - PBI_Product       (dim produits / SKU)
+  - PBI_Plant         (dim usines)
+
+RELATIONS A CREER (dans Vue Modele > Gerer les relations):
+
+Fact -> Dim:
+  PBI_Forecast.SKU_ID        -> PBI_Product.SKU_ID   (N:1, Actif)
+  PBI_DemandPlan.SKU_ID      -> PBI_Product.SKU_ID   (N:1, Actif)
+  PBI_InventoryPlan.SKU_ID   -> PBI_Product.SKU_ID   (N:1, Actif)
+  PBI_PlanFinal.SKU_ID       -> PBI_Product.SKU_ID   (N:1, Actif)
+  PBI_CapacityPlan.Plant_ID  -> PBI_Plant.Plant_ID   (N:1, Actif)
+  PBI_GapAnalysis.Plant_ID   -> PBI_Plant.Plant_ID   (N:1, Actif)
+  PBI_PlanFinal.Plant_ID     -> PBI_Plant.Plant_ID   (N:1, Actif)
+
+NOTE: Les colonnes Mois et Periode sont au format "aaaa-mm-dd".
+Creer une table Date si vous souhaitez des filtres temporels avances.
+
+============================================================
+4. MESURES DAX RECOMMANDEES
+============================================================
+
+-- Taux de service global (%)
+Taux_Service = 
+DIVIDE(
+    SUMX(PBI_DemandPlan, [Qte_finale]) - SUMX(FILTER(PBI_InventoryPlan, [Statut] = "RUPTURE"), [Livraisons]),
+    SUMX(PBI_DemandPlan, [Qte_finale]),
+    0
+) * 100
+
+-- WAPE moyen (%)
+WAPE_Moyen = 
+AVERAGEX(FILTER(PBI_Forecast, [Statut] = "RETENUE"), [WAPE_pct])
+
+-- Utilisation max capacite
+Util_Max_Cap = MAXX(PBI_CapacityPlan, [Utilisation_pct])
+
+-- Nombre de ruptures
+Nb_Ruptures = COUNTROWS(FILTER(PBI_InventoryPlan, [Statut] = "RUPTURE"))
+
+-- Nombre d'alertes critiques
+Nb_Alertes_Critiques = COUNTROWS(FILTER(PBI_Alertes, [Criticite] = "CRITIQUE"))
+
+-- Cout scenario recommande (SC-04)
+Cout_SC04 = CALCULATE(MAX(PBI_Scenarios[Cout_total]), PBI_Scenarios[Scenario_ID] = "SC-04")
+
+-- Demande totale horizon
+Demande_Totale = SUM(PBI_DemandPlan[Qte_finale])
+
+============================================================
+5. VISUALISATIONS RECOMMANDEES
+============================================================
+
+PAGE 1 - TABLEAU DE BORD EXECUTIF
+-----------------------------------
+[Carte KPI] Taux de service : Mesure Taux_Service | Cible: 95%
+[Carte KPI] WAPE moyen : Mesure WAPE_Moyen | Cible: < 20%
+[Carte KPI] Ruptures de stock : Mesure Nb_Ruptures | Cible: 0
+[Carte KPI] Alertes critiques : Mesure Nb_Alertes_Critiques
+[Histogramme] Utilisation capacite par usine/mois
+  - Axe X: PBI_CapacityPlan.Mois
+  - Valeur: PBI_CapacityPlan.Utilisation_pct
+  - Legende: PBI_CapacityPlan.Plant_ID
+  - Ligne de reference: 85% (seuil alerte)
+[Segment] Cycle_ID pour filtrer par cycle
+[Segment] SKU_ID
+
+PAGE 2 - DEMAND & FORECAST
+-----------------------------------
+[Courbe] Prevision vs Historique par SKU
+  - Axe X: Periode (mensuel)
+  - Serie 1: PBI_Forecast.Qte_prevue (RETENUE)
+  - Couleur: par SKU
+[Histogramme groupe] Plan demande ajuste vs stat
+  - Axe: Mois
+  - Series: Qte_stat et Qte_finale
+  - Filtre: SKU_ID
+[Tableau] Synthese forecast par SKU
+  - Colonnes: SKU_ID, Methode, WAPE_pct, Biais_pct, Classe
+[Carte] WAPE moyen par methode
+
+PAGE 3 - SUPPLY - CAPACITY & STOCK
+-----------------------------------
+[Histogramme 100%] Utilisation capacite par usine
+  - Axe: Mois; Valeur: Utilisation_pct; Legende: Plant_ID
+  - Ligne: 100% (seuil surcharge)
+[Courbe] Projection stocks par SKU
+  - Axe: Mois
+  - Serie 1: Stock_fin
+  - Serie 2: Stock_secu (stock de securite)
+  - Filtre: SKU par segment
+[Matrice] Statut inventaire par SKU/Mois
+  - Lignes: SKU_ID; Colonnes: Mois; Valeur: Statut
+  - Formatage conditionnel: VERT/ORANGE/ROUGE
+[Table] Gap Analysis
+  - Colonnes: Plant_ID, Mois, Besoin_net, Cap_disponible, Gap, Statut
+  - Formatage: Gap < 0 en rouge
+
+PAGE 4 - SCENARIOS & DECISION
+-----------------------------------
+[Histogramme groupe] Comparaison scenarios
+  - Axe: Scenario_ID (SC-01 a SC-05)
+  - Series: Cout_total, Stock_final_tot
+[Graphique bulles] Service vs Cout
+  - Axe X: Cout_total; Axe Y: Taux_service_pct; Taille: Util_max_pct
+  - Chaque bulle = un scenario
+[Tableau] Detail scenarios
+  - Toutes les colonnes de PBI_Scenarios
+  - Mise en forme: SC-04 en vert (recommande)
+[Carte] Scenario valide dans PLAN_FINAL
+[Histogramme] Plan de production par usine/mois
+
+PAGE 5 - KPI & ALERTES
+-----------------------------------
+[Tableau] Tous les KPI avec statut couleur
+  - Colonnes: Indicateur, Valeur, Unite, Seuil_vert, Statut_seuil
+  - Formatage conditionnel sur Statut_seuil
+[Tableau] Liste des alertes par criticite
+  - Filtres: Criticite (CRITIQUE / ELEVEE / MODEREE)
+[Graphique secteurs] Repartition alertes par type
+[Carte] Nombre total d'alertes
+
+============================================================
+6. RAFRAICHISSEMENT DES DONNEES
+============================================================
+
+PROCEDURE DE MISE A JOUR DU RAPPORT:
+
+1. Dans l'outil Excel, executer le cycle S.O.P. complet
+2. Cliquer sur "Exporter vers Power BI" et choisir le dossier /PowerBI/
+3. Dans Power BI Desktop, cliquer sur "Actualiser" (ruban Accueil)
+4. Toutes les visualisations se mettent a jour automatiquement
+
+RAFRAICHISSEMENT AUTOMATIQUE (Power BI Service):
+Si le rapport est publie sur Power BI Service (cloud) :
+- Configurer une passerelle de donnees (Data Gateway) sur le PC
+  contenant les fichiers CSV
+- Planifier le rafraichissement (ex: chaque lundi matin)
+- Les utilisateurs voient toujours les donnees du dernier cycle
+
+PARAMETRISATION DU CHEMIN DES FICHIERS:
+Pour que le rapport soit portable (portable entre PCs) :
+1. Dans Power Query : Accueil > Gerer les parametres > Nouveau parametre
+2. Creer un parametre "DossierPowerBI" de type Chemin de dossier
+3. Remplacer le chemin en dur dans les sources par ce parametre
+4. Les utilisateurs peuvent changer le chemin sans modifier les requetes
+
+============================================================
+Derniere mise a jour : Juin 2023
+Outil : AtlasFood S&OP DSS v1.0
+Cycle : CYC-2023-06
+============================================================
